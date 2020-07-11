@@ -152,3 +152,70 @@ rj %>% dim() # 12
 rj %>% head(3)
 ```
 ---
+```{r}
+gap_wide <- readr::read_csv('data/gapminder_wide.csv')
+str(gap_wide)
+```
+```{r}
+gap_long <- gap_wide %>% 
+  gather(key   = obstype_year,
+         value = obs_values,
+         dplyr::starts_with('pop'),
+         dplyr::starts_with('lifeExp'),
+         dplyr::starts_with('gdpPercap'))  #here i'm listing all the columns to use in gather
+head(gap_long)
+
+# the same
+gap_long <- gap_wide %>% 
+  gather(key   = obstype_year,
+         value = obs_values,
+         -continent, -country)
+head(gap_long)
+```
+```{r}
+gap_long <- gap_long %>% 
+  separate(obstype_year,
+           into = c('obs_type','year'),
+           sep = "_",
+           convert = TRUE) #this ensures that the year column is an integer rather than a character
+head(gap_long)
+```
+```{r}
+gap_normal <- gap_long %>% 
+  spread(obs_type, obs_values)
+```
+```{r}
+#relationship between life expectancy and GDP per capita in 2007
+gapminder %>% filter(year==2007) %>% 
+  ggplot(aes(x = gdpPercap, y = lifeExp))+ 
+  geom_point()+
+  labs(x = "GDP per Capita", 
+       y = "Life Expectancy", 
+       title = "Data from Gapminder") 
+```
+```{r, dpi=300, fig.width=12, fig.height=5}
+gapminder %>% 
+    filter(year==2007) %>% 
+    ggplot(aes(x=gdpPercap)) + geom_histogram()
+```
+```{r, dpi=300, fig.width=12, fig.height=4.5}
+gapminder %>% 
+    filter(year==2007) %>% 
+    ggplot(aes(x=gdpPercap)) + 
+    geom_histogram(bins=25) + scale_x_log10() #use scale_x_log10() to do log transformation
+```
+```{r, dpi=300, fig.width=12, fig.height=5.5}
+gapminder %>% 
+    filter(year==2007) %>% 
+    ggplot(aes(x=gdpPercap, y = lifeExp)) +
+    geom_point() + scale_x_log10()
+```
+```{r, eval = F}
+library(ggrepel) #theme, add text(country name)
+gapminder %>% 
+    filter(year==2007) %>% 
+    ggplot(aes(x=gdpPercap, y = lifeExp)) +
+    geom_point(color = 'red',) + scale_x_log10() + 
+    geom_text_repel(aes(label = country), size = 2) +
+  theme_classic() 
+```
