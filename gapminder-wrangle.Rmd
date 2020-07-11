@@ -1,0 +1,154 @@
+---
+title: "gapminder-wrangle"
+author: "Xinyun Hu"
+date: "7/10/2020"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r setup, message = F, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+```
+
+## Learn `dplyr` using gapminder dataset
+ 
+```{r}
+gapminder <- read_csv('data/gapminder.csv')
+View(gapminder) #view the whole table
+head(gapminder, 10) #show first 10 lines, default 6
+tail(gapminder, 10) #show last 10 lines, default 6
+```
+```{r}
+str(gapminder) #?str - displays the structure
+```
+```{r}
+filter(gapminder, lifeExp < 29)
+```
+```{r}
+filter(gapminder, country == "Mexico", year == 2002)
+# filter(gapminder, country == "Mexico" & year == 2002) #the same
+```
+```{r}
+# calculate the average life expectency in Brazil between 1987 and 2007
+b1 <- filter(gapminder, country == "Brazil", year >= 1987, year <= 2007)
+mean(b1$lifeExp)
+```
+```{r}
+gap1 <- dplyr::select(gapminder, year, country, lifeExp) #::use select in dplyr, avoid confilict, or library(conflicted), use prefer() 
+head(gap1, 3)
+```
+```{r}
+gap2 <- dplyr::select(gapminder, year:lifeExp) #select columns between year to lifeExp
+head(gap2, 3)
+```
+```{r}
+gap3 <- dplyr::select(gapminder, 1, 2, 4) #select the first, second, forth columns
+head(gap3, 3)
+```
+```{r}
+gap4 <- dplyr::select(gapminder, -continent, -lifeExp) #use - to deselect columns
+head(gap4, 3)
+```
+```{r, eval = F}
+gapminder %>% head(3) # %>%(command+shift+m) import gapminder as the first argument of head()
+
+#**Yes:**
+gap_cambodia  <- gapminder %>% filter(country == "Cambodia") %>%
+  select(-continent, -lifeExp)
+
+#**No:**
+  gap_cambodia  <- gapminder %>% filter(country == "Cambodia") 
+  %>% select(-continent, -lifeExp)
+# Error: unexpected SPECIAL in "  %>%"
+# %>% cannot be put at the head of a line
+```
+---
+```{r}
+## instead of this...
+gap_cambodia  <- filter(gapminder, country == "Cambodia")
+gap_cambodia2 <- dplyr::select(gap_cambodia, -continent, -lifeExp) 
+
+## ...we can do this
+gap_cambodia  <- gapminder %>% 
+  filter(country == "Cambodia") %>%
+  dplyr::select(-continent, -lifeExp) 
+```
+```{r}
+gapminder %>%
+  mutate(gdp = pop * gdpPercap)
+```
+```{r}
+gapminder %>% filter(continent == "Asia", year == 2007) %>% mutate(pop1000 = pop / 1000)
+```
+```{r}
+gapminder %>%
+  filter(year == 2002) %>%
+  group_by(continent) %>% 
+  mutate(cont_pop = sum(pop)) 
+```
+```{r}
+gapminder %>%
+  group_by(continent) %>%
+  summarize(cont_pop = sum(pop)) %>% #only keep continent and cont_pop
+  ungroup() #a good habit
+```
+```{r}
+continent_pop <- gapminder %>%
+  group_by(continent, year) %>% #We can use more than one grouping variable
+  summarize(cont_pop = sum(pop))
+continent_pop %>% ggplot(aes(x = year, y = cont_pop, col = continent)) + 
+  geom_line()
+```
+```{r}
+gapminder %>%
+  group_by(continent, year) %>%
+  summarize(cont_pop = sum(pop)) %>%
+  arrange(year)
+```
+```{r}
+gapdesc <- gapminder %>% arrange(desc(country)) #desc-in descending order
+gapdesc %>% filter(continent == "Asia") %>% 
+  group_by(year) %>% 
+  summarize(maxlife = max(lifeExp)) %>% 
+  arrange(desc(year)) %>% 
+  ungroup()
+```
+```{r}
+gap_max_life_exp <- gapminder %>% 
+  dplyr::select(-continent, -lifeExp) %>% # or select(country, year, pop, gdpPercap)
+  dplyr::group_by(country) %>%
+  dplyr::mutate(gdp = pop * gdpPercap) %>%
+  dplyr::summarize(max_gdp = max(gdp)) %>%
+  dplyr::ungroup() 
+```
+```{r}
+## read in the data. (same URL as yesterday, with co2.csv instead of gapminder.csv)
+co2 <- read_csv("data/co2.csv")
+
+## explore
+co2 %>% head()
+co2 %>% dim() # 12
+```
+```{r}
+## create new variable that is only 2007 data
+gap_2007 <- gapminder %>%
+  filter(year == 2007) 
+gap_2007 %>% dim() # 142  
+
+## left_join gap_2007 to co2
+lj <- left_join(gap_2007, co2, by = "country")
+
+## explore
+lj %>% dim() #142
+lj %>% head(3) # lots of NAs in the co2_2017 columm
+
+## right_join gap_2007 and co2
+rj <- right_join(gap_2007, co2, by = "country")
+
+## explore
+rj %>% dim() # 12
+rj %>% head(3)
+```
+---
